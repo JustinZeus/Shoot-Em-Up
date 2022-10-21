@@ -10,9 +10,9 @@ nO_SECS_BETWEEN_CYCLES :: Float
 nO_SECS_BETWEEN_CYCLES = 5
 
 data GameState = GameState {
-                   infoToShow  :: InfoToShow
-                 , elapsedTime :: Float
-                 }
+                    infoToShow  :: InfoToShow,
+                    elapsedTime :: Float
+                  }                
 
 initialState :: GameState
 initialState = GameState ShowNothing 0
