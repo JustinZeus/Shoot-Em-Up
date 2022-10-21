@@ -2,17 +2,22 @@
 --   which represent the state of the game
 module Model where
 
+type Health = Int
+type Score = Float
+type Time = Float
+
 data InfoToShow = ShowNothing
-                | ShowANumber Int
                 | ShowAChar   Char
 
-nO_SECS_BETWEEN_CYCLES :: Float
-nO_SECS_BETWEEN_CYCLES = 5
+data GameStates = IsPaused | IsPlaying | IsFinished | IsStarted | IsSaving | ShouldStart deriving (Eq, Show)
+
 
 data GameState = GameState {
-                    infoToShow  :: InfoToShow,
-                    elapsedTime :: Float
+                    infoToShow  :: InfoToShow
+                   , elapsedTime :: Float
+                   , currentScore :: Score
+                   , gamePhase :: GameStates
                   }                
 
 initialState :: GameState
-initialState = GameState ShowNothing 0
+initialState = GameState ShowNothing 0 0 IsPlaying
