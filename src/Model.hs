@@ -11,7 +11,6 @@ data InfoToShow = ShowNothing
 
 data GameStates = IsPaused | IsPlaying | IsFinished | IsStarted | IsSaving | ShouldStart deriving (Eq, Show)
 
-
 data GameState = GameState {
                     infoToShow  :: InfoToShow
                    , elapsedTime :: Float

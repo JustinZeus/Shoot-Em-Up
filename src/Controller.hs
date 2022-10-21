@@ -13,8 +13,8 @@ step :: Float -> GameState -> IO GameState
 step secs gstate
   | gamePhase gstate == IsPlaying
   = -- We show a new random number
-    return $ gstate { elapsedTime = elapsedTime gstate + secs, currentScore = currentScore gstate + elapsedTime gstate}
-  |gamePhase gstate == IsPaused
+    return $ gstate {elapsedTime = elapsedTime gstate + secs, currentScore = currentScore gstate + elapsedTime gstate}
+  | gamePhase gstate == IsPaused
   =
     return $ gstate {gamePhase = IsPaused}
   | otherwise
