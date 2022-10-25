@@ -9,30 +9,35 @@ view :: GameState -> IO Picture
 view = return . viewPure
 
 viewPure :: GameState -> Picture
-viewPure gstate = pictures [scorePicture, pressedKey,playerPicture, bulletPicture]
+viewPure gstate = pictures [backgroundPicture, scorePicture,playerPicture, bulletPicture, enemyPicture,viewBox]
               where
                 scorePicture = viewScore gstate
-                pressedKey = viewKey gstate
                 playerPicture = viewPlayer gstate
                 bulletPicture = viewBullets gstate
+                enemyPicture = viewEnemy gstate
+                backgroundPicture = viewStar gstate
+                
+
+viewBox :: Picture
+viewBox = color white (lineLoop [(-425,320), (500,320),(500,-320),(-425,-320), (-425,320)])
 
 viewScore :: GameState -> Picture
 viewScore gstate = pictures [scale 0.2 0.2 (translate (-2200) 2200 (color white (text "Score"))), 
                              scale 0.2 0.2 (translate (-1800) 2200 (color white (text (show (ceiling (currentScore gstate))))))]
 
-viewKey :: GameState -> Picture
-viewKey gstate = case infoToShow gstate of
-  ShowNothing   -> blank
-  ShowAChar   c -> color green (text [c])
-
-
 viewPlayer :: GameState -> Picture
 viewPlayer gstate = case player gstate of
   DeadPlayer -> Blank
-  Player (x,y) a (_x,_y) h -> translate x y (color green (circleSolid a))
+  Player (x,y) r (_x,_y) h -> translate x y (color green (circleSolid r))
 
 viewBullets :: GameState -> Picture
-viewBullets gstate = pictures [ translate x y (color red (circleSolid a)) | Bullet (x,y) a (_x,_y) <- bullets gstate]
+viewBullets gstate = pictures [ translate x y (color red (circleSolid r)) | Bullet (x,y) r (_x,_y) <- bullets gstate]
+
+viewEnemy :: GameState -> Picture
+viewEnemy gstate = pictures [ translate x y (color orange (circleSolid r)) | Enemy (x,y) r (_x,_y) h <- enemies gstate, x<485]
+
+viewStar :: GameState -> Picture
+viewStar gstate = pictures  [translate x y (color white (circleSolid r)) | Star (x,y) r (_x,_y)  <- background gstate, x<500]
     
 
     

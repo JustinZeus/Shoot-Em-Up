@@ -8,12 +8,26 @@ import Graphics.Gloss as Gloss
 import Graphics.Gloss.Interface.IO.Game
 import System.Random
 
+
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
 step secs gstate
-  | gamePhase gstate == IsPlaying
+  | gamePhase gstate == IsPlaying 
   = -- We show a new random number
-    return $ gstate {player = updatePositionPlayer (player gstate),bullets = updatePositionBullet (bullets gstate), elapsedTime = elapsedTime gstate + secs, currentScore = currentScore gstate + elapsedTime gstate}
+    do randomNumbery <- randomRIO (-300,300) :: IO Float
+       randomNumberx <- randomRIO (15,300) :: IO Float
+       let newNumbery = randomNumbery 
+           newNumberx = randomNumberx
+       return $ gstate {
+                        player = updatePositionPlayer (player gstate),
+                        bullets = updatePositionBullet (bullets gstate), 
+                        enemies = updatePositionEnemies (spawnEnemies gstate secs (enemies gstate)), 
+                        elapsedTime = elapsedTime gstate + secs, 
+                        currentScore = currentScore gstate + elapsedTime gstate, 
+                        randomNumberY = newNumbery, 
+                        randomNumberX = newNumberx,
+                        background = updateBackground (spawnStar gstate (background gstate))
+                        }
   | gamePhase gstate == IsPaused
   =
     return $ gstate {gamePhase = IsPaused}
@@ -38,23 +52,47 @@ inputKey _ gstate = gstate -- Otherwise keep the same
 
 
 movePlayer :: Char -> Player -> GameState -> Player
-movePlayer c (Player (x,y) a (_x,_y) h) gstate 
-  | c == 'w' && currentState gstate == IsPlaying && _y<=3 = Player (x,y) a (_x,_y+3) h
-  | c == 's' && currentState gstate == IsPlaying && _y>=(-3) = Player (x,y) a (_x,_y-3) h
-  | otherwise = Player (x,y) a (_x,_y) h
+movePlayer c (Player (x,y) r (_x,_y) h) gstate 
+  | c == 'w' && currentState gstate == IsPlaying && _y<=3 = Player (x,y) r (_x,_y+3) h
+  | c == 's' && currentState gstate == IsPlaying && _y>=(-3) = Player (x,y) r (_x,_y-3) h
+  | otherwise = Player (x,y) r (_x,_y) h
 movePlayer c DeadPlayer gstate = DeadPlayer
 
 updatePositionPlayer :: Player -> Player
-updatePositionPlayer (Player (x,y) a (_x,_y) h) | y<=300 && y>=(-300) = Player (x,y+_y) a (_x,_y) h
-                                                | y>300  = Player (x,300) a (_x,0) h
-                                                | y<(-300) = Player (x,(-300)) a (_x,0) h
+updatePositionPlayer (Player (x,y) r (_x,_y) h) | y<=300 && y>=(-300) = Player (x,y+_y) r (_x,_y) h
+                                                | y>300  = Player (x,300) r (_x,0) h
+                                                | y<(-300) = Player (x,(-300)) r (_x,0) h
 updatePositionPlayer DeadPlayer = DeadPlayer
 
 startPositionBullet :: Player  -> Bullet 
 startPositionBullet DeadPlayer = NoBullet
-startPositionBullet (Player (x,y) a (_x,_y) h) = Bullet (x+a,y) 5 (3,0)
+startPositionBullet (Player (x,y) r (_x,_y) h) = Bullet (x+r,y) 7 (3,0)
 
 updatePositionBullet :: [Bullet] -> [Bullet]
 updatePositionBullet [] = []
 updatePositionBullet [NoBullet] = []
-updatePositionBullet ((Bullet (x,y) a (_x,_y)):xs) = ((Bullet (x+_x,y) a (_x,_y)) : updatePositionBullet xs)
+updatePositionBullet ((Bullet (x,y) r (_x,_y)):xs) | x < 495 = ((Bullet (x+_x,y) r (_x,_y)) : updatePositionBullet xs)
+                                                   | otherwise = updatePositionBullet xs
+
+spawnEnemies :: GameState -> Float -> [Enemy] -> [Enemy]
+spawnEnemies gstate secs (xs) | ((round (elapsedTime gstate + secs)) `mod` 20) == 0  && length xs < (round (((elapsedTime gstate + secs))/10) + 3) = (Enemy (500+randomNumberX gstate,randomNumberY gstate) 15 (-(1.005**(elapsedTime gstate)),0) 1):xs
+                              | otherwise = xs
+
+
+
+updatePositionEnemies :: [Enemy] -> [Enemy]
+updatePositionEnemies [] = []
+updatePositionEnemies [DeadEnemy] = []
+updatePositionEnemies ((Enemy (x,y) r (_x,_y) h):xs) | x > -400 = (Enemy (x+_x,y) r (_x,_y) h) : (updatePositionEnemies xs)
+                                                    | otherwise = updatePositionEnemies xs
+
+spawnStar :: GameState -> [Star] -> [Star]
+spawnStar gstate (xs) | length xs < 300 = (Star (500+randomNumberX gstate,randomNumberY gstate) 1 (-2.5,0)):xs
+                      | otherwise = xs
+
+updateBackground :: [Star] -> [Star]
+updateBackground [] = [] 
+updateBackground [NoStar] = []
+updateBackground ((Star (x,y) r (_x,_y)):xs) | x > -425 = (Star (x+_x,y) r (_x,_y)) : (updateBackground xs)
+                                             | otherwise = updateBackground xs
+
