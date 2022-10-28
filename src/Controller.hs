@@ -1,3 +1,5 @@
+{-# LANGUAGE BlockArguments #-}
+
 -- | This module defines how the state changes
 --   in response to time and user input
 module Controller where
@@ -18,7 +20,7 @@ step secs gstate
   | gamePhase gstate == IsPaused =
     pauseStep gstate
   | gamePhase gstate == IsSaving =
-    return exitSuccess (scoreSave gstate)
+    return gstate
   | otherwise =
     -- Just update the elapsed time
     return gstate
@@ -48,15 +50,12 @@ playingStep gstate secs =
 pauseStep :: GameState -> IO GameState
 pauseStep gstate = return $ gstate {gamePhase = IsPaused}
 
-scoreSave :: GameState -> IO ()
-scoreSave gstate = do
-  load <- readFile "highscores.txt"
-  writeFile "highscores.txt" (show (currentScore gstate) ++ "\n" ++ load)
-
---generateHighScores :: IO String
---generateHighScores = do
---text <- readFile "highscores.txt"
---return read text :: IO String
+-- scoreSave :: GameState -> IO () -> IO GameState
+-- scoreSave gstate =
+--   do
+--     load <- readFile "highscores.txt"
+--     writeFile "highscores.txt" (show (currentScore gstate) ++ "\n" ++ load)
+--     return $ gstate
 
 -- | Handle user input
 input :: Event -> GameState -> IO GameState

@@ -3,6 +3,7 @@
 module Model where
 
 import Graphics.Gloss as Gloss
+import System.IO
 
 type Health = Float
 
@@ -24,10 +25,11 @@ data GameState = GameState
     player :: Player,
     enemies :: [Enemy],
     bullets :: [Bullet],
-    highScores :: [[Float]],
+    highScores :: [Float],
     randomNumberX :: Float,
     randomNumberY :: Float,
-    background :: [Star]
+    background :: [Star],
+    img :: [Picture]
   }
 
 data Player
@@ -68,5 +70,11 @@ data Star
       }
   deriving (Eq, Show)
 
-initialState :: GameState
-initialState = GameState ShowNothing 0 0 IsPlaying (Player (-380, 0) 20 (0, 0) 0) [] [] [[]] 0 0 []
+readLines :: FilePath -> IO [String]
+readLines = fmap lines . readFile
+
+makeFloat :: [String] -> [Float]
+makeFloat = map read
+
+initialState :: [Picture] -> [Float] -> GameState
+initialState imgs highScore = GameState ShowNothing 0 0 IsPlaying (Player (-380, 0) 20 (0, 0) 0) [] [] highScore 0 0 [] imgs
