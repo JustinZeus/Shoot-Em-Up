@@ -17,26 +17,25 @@ data InfoToShow
   = ShowNothing
   | ShowAChar Char
 
-data GameState = GameState
-{ infoToShow :: InfoToShow,
-  elapsedTime :: Float,
-  currentScore :: Score,
-  gamePhase :: GameStates,
-  player :: Player,
-  enemies1 :: [Enemy],
-  enemies2 :: [Enemy],
-  bullets :: [Bullet],
-  highScores :: [Float],
-  randomNumberX :: Float,
-  randomNumberY :: Float,
-  randomNummerEnemy :: Float,
-  background :: [Star],
-  boolBullet :: Bool,
-  boolPlayer :: Bool,
-  boolPause :: Bool,
-  waveNumber :: Int,
-  img :: [Picture]
-}
+data GameState = GameState {  infoToShow :: InfoToShow,
+                              elapsedTime :: Float,
+                              currentScore :: Score,
+                              gamePhase :: GameStates,
+                              player :: Player,
+                              enemies1 :: [Enemy],
+                              enemies2 :: [Enemy],
+                              bullets :: [Bullet],
+                              highScores :: [Float],
+                              randomNumberX :: Float,
+                              randomNumberY :: Float,
+                              randomNummerEnemy :: Float,
+                              background :: [Star],
+                              boolBullet :: Bool,
+                              boolPlayer :: Bool,
+                              boolPause :: Bool,
+                              waveNumber :: Int,
+                              img :: [Picture]
+                            }
 
 data Player
   = DeadPlayer

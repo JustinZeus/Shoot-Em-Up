@@ -9,7 +9,7 @@ view :: GameState -> IO Picture
 view = return . viewPure
 
 viewPure :: GameState -> Picture
-viewPure gstate = pictures [backgroundPicture, scorePicture, playerPicture, bulletPicture, enemyPicture, viewBox, highScoreTest]
+viewPure gstate = pictures [backgroundPicture, scorePicture, playerPicture, bulletPicture, enemy1Picture, enemy2Picture, viewBox, highScoreTest, newWavePicture]
   where
     scorePicture = viewScore gstate
     playerPicture = viewPlayer gstate
@@ -47,7 +47,7 @@ viewEnemy1 :: GameState -> Picture
 viewEnemy1 gstate = pictures [translate x y (color orange (circleSolid r)) | Enemy (x, y) r (_x, _y) h <- enemies1 gstate, x < 485]
 
 viewEnemy2 :: GameState -> Picture
-viewEnemy gstate = pictures [translate x y (img gstate !! 1) | Enemy (x, y) r (_x, _y) h <- enemies gstate, x < 485]
+viewEnemy2 gstate = pictures [translate x y (img gstate !! 1) | Enemy (x, y) r (_x, _y) h <- enemies2 gstate, x < 485]
 
 viewStar :: GameState -> Picture
 viewStar gstate = pictures [translate x y (color white (circleSolid r)) | Star (x, y) r (_x, _y) <- background gstate, x < 500]

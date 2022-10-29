@@ -106,7 +106,7 @@ spawnEnemies1 gstate secs xs z
 
 spawnEnemies2 :: GameState -> Float -> [Enemy] -> [Enemy]
 spawnEnemies2 gstate secs xs
-  | (round (elapsedTime gstate + secs) `mod` (waveNumber gstate)) == 0 && length xs < (round ((elapsedTime gstate + secs) / 15 )) = Enemy (500 + randomNumberX gstate, randomNumberY gstate) 15 (-(1.001** elapsedTime gstate), 3) 1 : xs
+  | (round (elapsedTime gstate + secs) `mod` (waveNumber gstate)) == 0 && length xs < (round ((elapsedTime gstate + secs) / 15 )) = Enemy (500 + randomNumberX gstate, randomNumberY gstate) 40 (-(1.001** elapsedTime gstate), 3) 1 : xs
   | otherwise = xs
 
 updatePositionPlayer :: Player -> [Enemy] -> Player
