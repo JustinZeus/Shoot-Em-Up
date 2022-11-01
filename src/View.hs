@@ -2,6 +2,8 @@
 --   the game state into a picture
 module View where
 
+import Data.List
+import Data.Ord
 import Graphics.Gloss
 import Model
 
@@ -38,13 +40,13 @@ viewKey gstate = case infoToShow gstate of
 viewPlayer :: GameState -> Picture
 viewPlayer gstate = case player gstate of
   DeadPlayer -> Blank
-  Player (x, y) r (_x, _y) h -> translate x y (head (img gstate))
+  Player (x, y) r (_x, _y) h -> translate x y (img gstate !! 2)
 
 viewBullets :: GameState -> Picture
 viewBullets gstate = pictures [translate x y (color red (circleSolid r)) | Bullet (x, y) r (_x, _y) <- bullets gstate]
 
 viewEnemy1 :: GameState -> Picture
-viewEnemy1 gstate = pictures [translate x y (color orange (circleSolid r)) | Enemy (x, y) r (_x, _y) h <- enemies1 gstate, x < 485]
+viewEnemy1 gstate = pictures [translate x y (img gstate !! 3) | Enemy (x, y) r (_x, _y) h <- enemies1 gstate, x < 485]
 
 viewEnemy2 :: GameState -> Picture
 viewEnemy2 gstate = pictures [translate x y (img gstate !! 1) | Enemy (x, y) r (_x, _y) h <- enemies2 gstate, x < 485]
@@ -52,22 +54,25 @@ viewEnemy2 gstate = pictures [translate x y (img gstate !! 1) | Enemy (x, y) r (
 viewStar :: GameState -> Picture
 viewStar gstate = pictures [translate x y (color white (circleSolid r)) | Star (x, y) r (_x, _y) <- background gstate, x < 500]
 
+reverseList :: Foldable t => t a -> [a]
+reverseList xs = foldl (\x y -> y : x) [] xs
+
 viewHighScores :: GameState -> Picture
 viewHighScores gstate = case gamePhase gstate of
   IsPaused ->
     pictures
       [ scale 0.2 0.2 (translate (-1800) 2500 (color white (text "Highscores:"))),
-        scale 0.2 0.2 (translate (-1800) 2350 (color white (text (show (head (highScores gstate)))))),
-        scale 0.2 0.2 (translate (-1800) 2200 (color white (text (show (highScores gstate !! 1))))),
-        scale 0.2 0.2 (translate (-1800) 2050 (color white (text (show (highScores gstate !! 2))))),
-        scale 0.2 0.2 (translate (-1800) 1900 (color white (text (show (highScores gstate !! 3))))),
-        scale 0.2 0.2 (translate (-1800) 1750 (color white (text (show (highScores gstate !! 4)))))
+        scale 0.2 0.2 (translate (-1800) 2350 (color white (text (show (reverseList (sort (highScores gstate)) !! 0))))),
+        scale 0.2 0.2 (translate (-1800) 2200 (color white (text (show (reverseList (sort (highScores gstate)) !! 1))))),
+        scale 0.2 0.2 (translate (-1800) 2050 (color white (text (show (reverseList (sort (highScores gstate)) !! 2))))),
+        scale 0.2 0.2 (translate (-1800) 1900 (color white (text (show (reverseList (sort (highScores gstate)) !! 3))))),
+        scale 0.2 0.2 (translate (-1800) 1750 (color white (text (show (reverseList (sort (highScores gstate)) !! 4)))))
         --scale nr 1 uit lijst
         --tot nr 5
       ]
   _ -> blank
 
 viewNewWave :: GameState -> Picture
-viewNewWave gstate | ((ceiling (elapsedTime gstate)) `mod` (waveNumber gstate)) == (waveNumber gstate)-1 = pictures [scale 0.2 0.2 (translate (-50) 0 (color white (text "New Wave")))]
-                    | otherwise = blank
-
+viewNewWave gstate
+  | ((ceiling (elapsedTime gstate)) `mod` (waveNumber gstate)) == (waveNumber gstate) - 1 = pictures [scale 0.2 0.2 (translate (-50) 0 (color white (text "New Wave")))]
+  | otherwise = blank

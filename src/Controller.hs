@@ -18,7 +18,7 @@ step secs gstate
   | gamePhase gstate == IsPaused =
     pauseStep gstate
   | gamePhase gstate == IsSaving =
-    return exitSuccess (scoreSave gstate)
+    scoreSave gstate
   | otherwise =
     -- Just update the elapsed time
     return gstate
@@ -31,7 +31,7 @@ playingStep gstate secs =
   do
     randomNumbery <- randomRIO (-300, 300) :: IO Float
     randomNumberx <- randomRIO (15, 300) :: IO Float
-    randomNummerEnemy <-randomRIO (-2,2) :: IO Float
+    randomNummerEnemy <- randomRIO (-2, 2) :: IO Float
     let newNumbery = randomNumbery
         newNumberx = randomNumberx
         newNumberEnemy = randomNummerEnemy
@@ -52,10 +52,14 @@ playingStep gstate secs =
 pauseStep :: GameState -> IO GameState
 pauseStep gstate = return $ gstate {gamePhase = IsPaused}
 
-scoreSave :: GameState -> IO ()
+scoreSave :: GameState -> IO GameState
 scoreSave gstate = do
-  load <- readFile "highscores.txt"
-  writeFile "highscores.txt" (show (currentScore gstate) ++ "\n" ++ load)
+  let filename = "highscores.txt"
+  writeFile filename (show (currentScore gstate))
+  content <- readFile filename
+  putStrLn content
+  exitSuccess
+  return gstate
 
 --generateHighScores :: IO String
 --generateHighScores = do
@@ -74,8 +78,8 @@ inputKey (EventKey (Char c) _ _ _) gstate
   | c == 'p' && boolPause gstate == True && gamePhase gstate == IsPlaying = gstate {boolPause = False}
   | (c == 'w' || c == 's') && boolPlayer gstate == False && gamePhase gstate == IsPlaying = gstate {player = movePlayer c (player gstate) gstate (boolPlayer gstate), boolPlayer = True}
   | (c == 'w' || c == 's') && boolPlayer gstate == True && gamePhase gstate == IsPlaying = gstate {player = movePlayer c (player gstate) gstate (boolPlayer gstate), boolPlayer = False}
-  | c == 'f'  && boolBullet gstate == False && gamePhase gstate == IsPlaying = gstate {bullets = startPositionBullet (player gstate) : bullets gstate, boolBullet = True}
-  | c == 'f'  && boolBullet gstate == True && gamePhase gstate == IsPlaying = gstate {boolBullet = False}
+  | c == 'f' && boolBullet gstate == False && gamePhase gstate == IsPlaying = gstate {bullets = startPositionBullet (player gstate) : bullets gstate, boolBullet = True}
+  | c == 'f' && boolBullet gstate == True && gamePhase gstate == IsPlaying = gstate {boolBullet = False}
   | c == 'x' = gstate {gamePhase = IsSaving}
   | otherwise -- If the user presses a character key, show that one
     =
@@ -84,9 +88,9 @@ inputKey _ gstate = gstate -- Otherwise keep the same
 
 movePlayer :: Char -> Player -> GameState -> Bool -> Player
 movePlayer c (Player (x, y) r (_x, _y) h) gstate a
-  | c == 'w' && _y <= 3 && a == False = Player (x, y) r (_x, 5) h
-  | c == 's' && _y >= (-3) && a == False = Player (x, y) r (_x, -5) h
-  | a == True = Player (x,y) r (_x,0) h
+  | c == 'w' && _y <= 3 && not a = Player (x, y) r (_x, 5) h
+  | c == 's' && _y >= (-3) && not a = Player (x, y) r (_x, -5) h
+  | a = Player (x, y) r (_x, 0) h
   | otherwise = Player (x, y) r (_x, 0) h
 movePlayer c DeadPlayer gstate a = DeadPlayer
 
@@ -101,48 +105,48 @@ spawnStar gstate xs
 
 spawnEnemies1 :: GameState -> Float -> [Enemy] -> Float -> [Enemy]
 spawnEnemies1 gstate secs xs z
-  | (round (elapsedTime gstate + secs) `mod` (waveNumber gstate)) == 0 && length xs < (round ((elapsedTime gstate + secs) / 10) + 3) = Enemy (500 + randomNumberX gstate, randomNumberY gstate) 15 (-(1.005** elapsedTime gstate), z) 1 : xs
+  | (round (elapsedTime gstate + secs) `mod` waveNumber gstate) == 0 && length xs < (round ((elapsedTime gstate + secs) / 10) + 3) = Enemy (500 + randomNumberX gstate, randomNumberY gstate) 15 (-(1.005 ** elapsedTime gstate), z) 1 : xs
   | otherwise = xs
 
 spawnEnemies2 :: GameState -> Float -> [Enemy] -> [Enemy]
 spawnEnemies2 gstate secs xs
-  | (round (elapsedTime gstate + secs) `mod` (waveNumber gstate)) == 0 && length xs < (round ((elapsedTime gstate + secs) / 15 )) = Enemy (500 + randomNumberX gstate, randomNumberY gstate) 40 (-(1.001** elapsedTime gstate), 3) 1 : xs
+  | (round (elapsedTime gstate + secs) `mod` waveNumber gstate) == 0 && length xs < round ((elapsedTime gstate + secs) / 15) = Enemy (500 + randomNumberX gstate, randomNumberY gstate) 40 (-(1.001 ** elapsedTime gstate), 3) 1 : xs
   | otherwise = xs
 
 updatePositionPlayer :: Player -> [Enemy] -> Player
 updatePositionPlayer (Player (x, y) r (_x, _y) h) xs
-  | y <= 300 && y >= (-300) && (collisionPlayerEnemy (Player (x,y) r (_x,_y) h) xs == False) = Player (x, y + _y) r (_x, _y) h
+  | y <= 300 && y >= (-300) && not (collisionPlayerEnemy (Player (x, y) r (_x, _y) h) xs) = Player (x, y + _y) r (_x, _y) h
   | y > 300 = Player (x, 300) r (_x, 0) h
   | y < -300 = Player (x, -300) r (_x, 0) h
 updatePositionPlayer (Player (_, _) _ (_, _) _) _ = DeadPlayer
-updatePositionPlayer DeadPlayer _  = DeadPlayer
+updatePositionPlayer DeadPlayer _ = DeadPlayer
 
 updatePositionBullet :: [Bullet] -> [Enemy] -> [Bullet]
 updatePositionBullet [] _ = []
 updatePositionBullet [NoBullet] _ = []
 updatePositionBullet ((Bullet (x, y) r (_x, _y)) : xs) ys
-  | x < 495 &&  (collisionBulletEnemies (Bullet (x,y) r (_x,_y)) ys == False) = Bullet (x + _x, y) r (_x, _y) : updatePositionBullet xs ys
+  | x < 495 && (collisionBulletEnemies (Bullet (x, y) r (_x, _y)) ys == False) = Bullet (x + _x, y) r (_x, _y) : updatePositionBullet xs ys
   | otherwise = updatePositionBullet xs ys
 
 updatePositionEnemies1 :: [Bullet] -> [Enemy] -> [Enemy]
-updatePositionEnemies1 _ []  = []
+updatePositionEnemies1 _ [] = []
 updatePositionEnemies1 _ [DeadEnemy] = []
-updatePositionEnemies1 ys ((Enemy (x, y) r (_x, _y) h) : xs) 
-  | x > -400  && y < 300 && y> -300 &&  (collisionEnemyBullets ys (Enemy (x, y) r (_x, _y) h) == False) = Enemy (x + _x, y +_y) r (_x, _y) h : updatePositionEnemies1 ys xs 
-  | x > -400  && y >= 300 && (collisionEnemyBullets ys (Enemy (x, y) r (_x, _y) h) == False) = Enemy (x + _x, 298 +_y) r (_x, - _y) h : updatePositionEnemies1 ys xs 
-  | x > -400  && y <= -300 && (collisionEnemyBullets ys (Enemy (x, y) r (_x, _y) h) == False) = Enemy (x + _x, -298+_y) r (_x, - _y) h : updatePositionEnemies1 ys xs 
-  | otherwise = updatePositionEnemies1 ys xs 
+updatePositionEnemies1 ys ((Enemy (x, y) r (_x, _y) h) : xs)
+  | x > -400 && y < 300 && y > -300 && (collisionEnemyBullets ys (Enemy (x, y) r (_x, _y) h) == False) = Enemy (x + _x, y + _y) r (_x, _y) h : updatePositionEnemies1 ys xs
+  | x > -400 && y >= 300 && (collisionEnemyBullets ys (Enemy (x, y) r (_x, _y) h) == False) = Enemy (x + _x, 298 + _y) r (_x, -_y) h : updatePositionEnemies1 ys xs
+  | x > -400 && y <= -300 && (collisionEnemyBullets ys (Enemy (x, y) r (_x, _y) h) == False) = Enemy (x + _x, -298 + _y) r (_x, -_y) h : updatePositionEnemies1 ys xs
+  | otherwise = updatePositionEnemies1 ys xs
 
 updatePositionEnemies2 :: [Bullet] -> [Enemy] -> Player -> [Enemy]
 updatePositionEnemies2 _ [] _ = []
 updatePositionEnemies2 _ [DeadEnemy] _ = []
-updatePositionEnemies2 ys ((Enemy (x1, y1) r1 (_x1, _y1) h1) : xs) (Player (x2,y2) r2 (_x2,_y2) h2)
-  | x1 > -400  && y1 < 300 && y1 <= y2 - 5*r2 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, y1+_y1) r1 (_x1, 3) h1 : updatePositionEnemies2 ys xs (Player (x2,y2) r2 (_x2,_y2) h2)
-  | x1 > -400  && y1 >= 300 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, 297 +_y1) r1 (_x1, - 3) h1 : updatePositionEnemies2 ys xs (Player (x2,y2) r2 (_x2,_y2) h2)
-  | x1 > -400  && y1 < 300 && y1 > -300 && y1 > y2 - 5*r2 && y1 < y2 + 5*r2 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, y1+_y1) r1 (_x1, _y1) h1 : updatePositionEnemies2 ys xs (Player (x2,y2) r2 (_x2,_y2) h2)
-  | x1 > -400  && y1 > -300 && y1 >= y2 + 5*r2 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, y1+_y1) r1 (_x1, -3) h1 : updatePositionEnemies2 ys xs (Player (x2,y2) r2 (_x2,_y2) h2)
-  | x1 > -400  && y1 <= -300 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, -297+_y1) r1 (_x1, 3) h1 : updatePositionEnemies2 ys xs (Player (x2,y2) r2 (_x2,_y2) h2)
-  | otherwise = updatePositionEnemies2 ys xs (Player (x2,y2) r2 (_x2,_y2) h2)
+updatePositionEnemies2 ys ((Enemy (x1, y1) r1 (_x1, _y1) h1) : xs) (Player (x2, y2) r2 (_x2, _y2) h2)
+  | x1 > -400 && y1 < 300 && y1 <= y2 - 5 * r2 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, y1 + _y1) r1 (_x1, 3) h1 : updatePositionEnemies2 ys xs (Player (x2, y2) r2 (_x2, _y2) h2)
+  | x1 > -400 && y1 >= 300 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, 297 + _y1) r1 (_x1, -3) h1 : updatePositionEnemies2 ys xs (Player (x2, y2) r2 (_x2, _y2) h2)
+  | x1 > -400 && y1 < 300 && y1 > -300 && y1 > y2 - 5 * r2 && y1 < y2 + 5 * r2 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, y1 + _y1) r1 (_x1, _y1) h1 : updatePositionEnemies2 ys xs (Player (x2, y2) r2 (_x2, _y2) h2)
+  | x1 > -400 && y1 > -300 && y1 >= y2 + 5 * r2 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, y1 + _y1) r1 (_x1, -3) h1 : updatePositionEnemies2 ys xs (Player (x2, y2) r2 (_x2, _y2) h2)
+  | x1 > -400 && y1 <= -300 && (collisionEnemyBullets ys (Enemy (x1, y1) r1 (_x1, _y1) h1) == False) = Enemy (x1 + _x1, -297 + _y1) r1 (_x1, 3) h1 : updatePositionEnemies2 ys xs (Player (x2, y2) r2 (_x2, _y2) h2)
+  | otherwise = updatePositionEnemies2 ys xs (Player (x2, y2) r2 (_x2, _y2) h2)
 
 updateBackground :: [Star] -> [Star]
 updateBackground [] = []
@@ -153,22 +157,18 @@ updateBackground ((Star (x, y) r (_x, _y)) : xs)
 
 collisionEnemyBullets :: [Bullet] -> Enemy -> Bool
 collisionEnemyBullets [] _ = False
-collisionEnemyBullets ((Bullet (x1,y1) r1 (_x1,_y1)):xs) (Enemy (x2,y2) r2 (_x2,_y2) h)  
-  | sqrt ((x2-x1)^2 + (y2-y1)^2) <(r1+r2) = True
-  | otherwise = collisionEnemyBullets xs (Enemy (x2,y2) r2 (_x2,_y2) h)
+collisionEnemyBullets ((Bullet (x1, y1) r1 (_x1, _y1)) : xs) (Enemy (x2, y2) r2 (_x2, _y2) h)
+  | sqrt ((x2 - x1) ^ 2 + (y2 - y1) ^ 2) < (r1 + r2) = True
+  | otherwise = collisionEnemyBullets xs (Enemy (x2, y2) r2 (_x2, _y2) h)
 
 collisionBulletEnemies :: Bullet -> [Enemy] -> Bool
 collisionBulletEnemies _ [] = False
-collisionBulletEnemies (Bullet (x1,y1) r1 (_x1,_y1)) ((Enemy (x2,y2) r2 (_x2,_y2) h) : xs)
-  | sqrt ((x2-x1)^2 + (y2-y1)^2) <(r1+r2) = True
-  | otherwise = collisionBulletEnemies (Bullet (x1,y1) r1 (_x1,_y1)) xs
+collisionBulletEnemies (Bullet (x1, y1) r1 (_x1, _y1)) ((Enemy (x2, y2) r2 (_x2, _y2) h) : xs)
+  | sqrt ((x2 - x1) ^ 2 + (y2 - y1) ^ 2) < (r1 + r2) = True
+  | otherwise = collisionBulletEnemies (Bullet (x1, y1) r1 (_x1, _y1)) xs
 
 collisionPlayerEnemy :: Player -> [Enemy] -> Bool
 collisionPlayerEnemy _ [] = False
-collisionPlayerEnemy (Player (x1,y1) r1 (_x1,_y1) h1) ((Enemy (x2,y2) r2 (_x2,_y2) h) : xs)
-  | sqrt ((x2-x1)^2 + (y2-y1)^2) <(r1+r2) || x2 <= (-400)  = True
-  | otherwise = collisionPlayerEnemy (Player (x1,y1) r1 (_x1,_y1) h1) xs
-
-
-                        
-
+collisionPlayerEnemy (Player (x1, y1) r1 (_x1, _y1) h1) ((Enemy (x2, y2) r2 (_x2, _y2) h) : xs)
+  | sqrt ((x2 - x1) ^ 2 + (y2 - y1) ^ 2) < (r1 + r2) || x2 <= (-400) = True
+  | otherwise = collisionPlayerEnemy (Player (x1, y1) r1 (_x1, _y1) h1) xs
